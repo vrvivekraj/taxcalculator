@@ -81,8 +81,8 @@ def calculate_take_home(base_salary, bonus_percentage):
 # Streamlit UI
 st.title("Take-Home Salary Calculator (FY 2025-26)")
 
-base_salary = st.slider("Select Base Annual Salary (₹)", min_value=3_00_000, max_value=1_00_00_000, step=50_000, value=15_00_000)
-bonus_percentage = st.slider("Select Bonus Percentage (%)", min_value=0, max_value=50, step=1, value=16)
+base_salary = st.slider("Select Base Annual Salary (₹)", min_value=1_00_000, max_value=1_50_00_000, step=50_000, value=15_00_000)
+bonus_percentage = st.slider("Select Bonus Percentage (%)", min_value=0, max_value=50, step=1, value=0)
 
 take_home, pf_amount, tax_amount, annual_bonus, annual_bonus_take_home, employer_pf, total_ctc = calculate_take_home(base_salary, bonus_percentage)
 

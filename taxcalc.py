@@ -1,10 +1,4 @@
 import streamlit as st
-import streamlit_analytics
-
-# Start analytics tracking
-streamlit_analytics.start_tracking()
-st.title("Take-Home Salary Calculator (FY 2025-26)")
-
 
 def format_currency(amount):
     """

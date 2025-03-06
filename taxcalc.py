@@ -1,15 +1,18 @@
 import streamlit as st
 
-def calculate_take_home(gross_salary):
+def calculate_take_home(base_salary, bonus_percentage):
     # Standard Deduction for salaried individuals
     standard_deduction = 75_000
     
     # Employee Provident Fund (EPF) - 6% deducted from employee's salary
-    employee_pf = 0.06 * gross_salary
-    employer_pf = 0.06 * gross_salary  # Employer contribution (not deducted from salary)
+    employee_pf = 0.06 * base_salary
+    employer_pf = 0.06 * base_salary  # Employer contribution (not deducted from salary)
 
-    # Net taxable income after standard deduction and employee PF
-    taxable_income = max(0, gross_salary - standard_deduction - employee_pf)
+    # Calculate Annual Bonus
+    annual_bonus = (bonus_percentage / 100) * base_salary
+    
+    # Total taxable income including bonus
+    taxable_income = max(0, base_salary + annual_bonus - standard_deduction - employee_pf)
     
     # Revised Tax Slabs for FY 2025-26 (New Regime)
     tax_slabs = [
@@ -25,7 +28,7 @@ def calculate_take_home(gross_salary):
     if taxable_income > 24_00_000:
         tax_slabs.append((taxable_income - 24_00_000, 0.30))
     
-    # Compute tax
+    # Compute total tax
     total_tax = 0
     remaining_income = taxable_income
     
@@ -35,11 +38,11 @@ def calculate_take_home(gross_salary):
             total_tax += taxable_amount * rate
             remaining_income -= taxable_amount
     
-    # Apply rebate u/s 87A only if taxable income is **≤ 12,00,000**, not 12,75,000
+    # Apply rebate u/s 87A only if taxable income is **≤ 12,00,000**
     if taxable_income <= 12_00_000:
         total_tax = max(0, total_tax - 60_000)
     
-    # Apply surcharge based on income
+    # Apply surcharge based on total taxable income
     if taxable_income > 50_00_000:
         if taxable_income <= 1_00_00_000:
             surcharge = 0.10 * total_tax  # 10% surcharge for ₹50L-₹1Cr
@@ -56,8 +59,8 @@ def calculate_take_home(gross_salary):
     total_tax += cess
 
     # Net annual salary after tax
-    net_annual_salary = gross_salary - total_tax - employee_pf  # Deduct employee PF
-
+    net_annual_salary = base_salary - (total_tax * (base_salary / taxable_income)) - employee_pf if taxable_income > 0 else base_salary - employee_pf  
+    
     # Monthly take-home salary before deductions
     monthly_take_home = net_annual_salary / 12
     
@@ -68,17 +71,50 @@ def calculate_take_home(gross_salary):
     # Calculate Monthly PF Contribution
     monthly_pf = (employer_pf + employee_pf) / 12
     
-    return final_monthly_take_home, monthly_pf, total_tax
+    # Annual Bonus Take-Home (Tax is applied proportionally)
+    annual_bonus_take_home = annual_bonus - (total_tax * (annual_bonus / taxable_income)) if taxable_income > 0 else annual_bonus
+    
+    total_ctc = base_salary + annual_bonus + employer_pf
+    
+    return final_monthly_take_home, monthly_pf, total_tax, annual_bonus, annual_bonus_take_home, employer_pf, total_ctc
 
 # Streamlit UI
 st.title("Take-Home Salary Calculator (FY 2025-26)")
 
-gross_salary = st.slider("Select Gross Annual Salary (₹)", min_value=3_00_000, max_value=1_00_00_000, step=50_000, value=15_00_000)
+base_salary = st.slider("Select Base Annual Salary (₹)", min_value=3_00_000, max_value=1_00_00_000, step=50_000, value=15_00_000)
+bonus_percentage = st.slider("Select Bonus Percentage (%)", min_value=0, max_value=50, step=1, value=16)
 
-take_home, pf_amount, tax_amount = calculate_take_home(gross_salary)
+take_home, pf_amount, tax_amount, annual_bonus, annual_bonus_take_home, employer_pf, total_ctc = calculate_take_home(base_salary, bonus_percentage)
 
-st.subheader("Results:")
-st.write(f"### Monthly Take-Home Salary: ₹{take_home:,.2f}")
-st.write(f"### Monthly Provident Fund Contribution (Employer + Employee): ₹{pf_amount:,.2f}")
-st.write(f"### Annual Tax Payable: ₹{tax_amount:,.2f}")
-
+# Display results in a formatted table
+st.subheader("Results")
+st.markdown(f"""
+    <style>
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+        }}
+        th, td {{
+            padding: 10px;
+            text-align: left;
+        }}
+        th {{
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }}
+        .highlight {{
+            font-weight: bold;
+            font-size: 1.2em;
+        }}
+    </style>
+    <table>
+        <tr><th>Component</th><th>Amount</th></tr>
+        <tr><td>Annual Bonus</td><td>₹{annual_bonus:,.2f}</td></tr>
+        <tr><td>PF Retirals (Employer)</td><td>₹{employer_pf:,.2f}</td></tr>
+        <tr class='highlight'><td>Total CTC</td><td>₹{total_ctc:,.2f}</td></tr>
+        <tr><td>Annual Tax Payable</td><td>₹{tax_amount:,.2f}</td></tr>
+        <tr class='highlight'><td>Annual Bonus (Take Home)</td><td>₹{annual_bonus_take_home:,.2f}</td></tr>
+        <tr class='highlight'><td>Monthly PF Contribution (Employee + Employer)</td><td>₹{pf_amount:,.2f}</td></tr>
+        <tr class='highlight'><td>Monthly Take-Home Salary</td><td>₹{take_home:,.2f}</td></tr>
+    </table>
+    """, unsafe_allow_html=True)

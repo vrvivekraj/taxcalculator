@@ -1,5 +1,34 @@
 import streamlit as st
 
+def format_currency(amount):
+    """
+    Formats an integer amount in Indian Rupees format.
+    """
+    amount = int(round(amount))  # Convert to integer and round off
+    amount = str(amount)
+    if len(amount) <= 3:
+        return f"₹{amount}"
+
+    last_three = amount[-3:]
+    remaining = amount[:-3]
+
+    if not remaining:
+        return f"₹{last_three}"
+
+    groups = []
+    while remaining:
+        groups.append(remaining[-2:])
+        remaining = remaining[:-2]
+
+    formatted = ",".join(reversed(groups))
+
+    if formatted:
+        formatted = formatted + "," + last_three
+    else:
+        formatted = last_three
+
+    return f"₹{formatted}"
+
 def calculate_take_home(base_salary, bonus_percentage):
     # Standard Deduction for salaried individuals
     standard_deduction = 75_000
@@ -81,8 +110,8 @@ def calculate_take_home(base_salary, bonus_percentage):
 # Streamlit UI
 st.title("Take-Home Salary Calculator (FY 2025-26)")
 
-base_salary = st.slider("Select Base Annual Salary (₹)", min_value=1_00_000, max_value=1_50_00_000, step=50_000, value=15_00_000)
-bonus_percentage = st.slider("Select Bonus Percentage (%)", min_value=0, max_value=50, step=1, value=0)
+base_salary = st.slider("Select Base Annual Salary (₹)", min_value=3_00_000, max_value=1_00_00_000, step=50_000, value=15_00_000)
+bonus_percentage = st.slider("Select Bonus Percentage (%)", min_value=0, max_value=50, step=1, value=16)
 
 take_home, pf_amount, tax_amount, annual_bonus, annual_bonus_take_home, employer_pf, total_ctc = calculate_take_home(base_salary, bonus_percentage)
 
@@ -102,19 +131,32 @@ st.markdown(f"""
             background-color: #f2f2f2;
             font-weight: bold;
         }}
-        .highlight {{
+        .highlight-green {{
             font-weight: bold;
-            font-size: 1.2em;
+            color: green;
+        }}
+        .highlight-brown {{
+            font-weight: bold;
+            color: brown;
+        }}
+        .highlight-red {{
+            font-weight: bold;
+            color: red;
+        }}
+        .highlight-purple {{
+            font-weight: bold;
+            color: purple;
         }}
     </style>
     <table>
         <tr><th>Component</th><th>Amount</th></tr>
-        <tr><td>Annual Bonus</td><td>₹{annual_bonus:,.2f}</td></tr>
-        <tr><td>PF Retirals (Employer)</td><td>₹{employer_pf:,.2f}</td></tr>
-        <tr class='highlight'><td>Total CTC</td><td>₹{total_ctc:,.2f}</td></tr>
-        <tr><td>Annual Tax Payable</td><td>₹{tax_amount:,.2f}</td></tr>
-        <tr class='highlight'><td>Annual Bonus (Take Home)</td><td>₹{annual_bonus_take_home:,.2f}</td></tr>
-        <tr class='highlight'><td>Monthly PF Contribution (Employee + Employer)</td><td>₹{pf_amount:,.2f}</td></tr>
-        <tr class='highlight'><td>Monthly Take-Home Salary</td><td>₹{take_home:,.2f}</td></tr>
+        <tr><td>Base Annual Salary</td><td>{format_currency(base_salary)}</td></tr>
+        <tr><td>Annual Bonus ({bonus_percentage}%)</td><td>{format_currency(annual_bonus)}</td></tr>
+        <tr><td>PF Retirals (Employer) - 6% of Base</td><td>{format_currency(employer_pf)}</td></tr>
+        <tr class='highlight-green'><td>Total CTC (Base Annual Salary + Annual Bonus + PF Retirals)</td><td>{format_currency(total_ctc)}</td></tr>
+        <tr><td>Annual Tax Payable</td><td>{format_currency(tax_amount)}</td></tr>
+        <tr class='highlight-brown'><td>Annual Bonus (Take Home)</td><td>{format_currency(annual_bonus_take_home)}</td></tr>
+        <tr class='highlight-purple'><td>Monthly PF Contribution (Employee + Employer)</td><td>{format_currency(pf_amount)}</td></tr>
+        <tr class='highlight-red'><td>Monthly Take-Home Salary</td><td>{format_currency(take_home)}</td></tr>
     </table>
     """, unsafe_allow_html=True)
